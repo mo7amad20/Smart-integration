@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محلل لعبة الدمج المتقدم</title>
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: #f5f9ff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .cell {
+            width: 70%;
+            aspect-ratio: 1;
+            background: #ecf0f1;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            flex: 1;
+            min-width: 100px;
+        }
+        .result {
+            background: #eaf7fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .move-btn {
+            background: #2ecc71;
+        }
+        .highlight {
+            animation: pulse 1s infinite;
+        }
+        .merged-cell {
+            background-color: #ffeb3b;
+            animation: pulse 0.5s 3;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .move-explanation {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 محلل لعبة الدمج المتقدم</h1>
+        
+        <div>
+            <h3>حالة اللوحة الحالية:</h3>
+            <div class="grid" id="inputGrid">
+                <!-- سيتم ملؤها بالجافاسكريبت -->
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="solveBtn">إيجاد الحل الأمثل</button>
+            <button id="randomBtn">توليد لوحة عشوائية</button>
+            <button class="move-btn" id="moveUp">↑ أعلى</button>
+            <button class="move-btn" id="moveDown">↓ أسفل</button>
+            <button class="move-btn" id="moveLeft">← يسار</button>
+            <button class="move-btn" id="moveRight">→ يمين</button>
+        </div>
+        
+        <div class="result">
+            <h3>التوصية الذكية:</h3>
+            <p id="solutionText">سيظهر الحل هنا بعد تحليل اللوحة...</p>
+            <div id="moveDetails"></div>
+        </div>
+    </div>
+
+    <script>
+        // تهيئة اللوحة
+        const inputGrid = document.getElementById('inputGrid');
+        const solutionText = document.getElementById('solutionText');
+        const moveDetails = document.getElementById('moveDetails');
+        let board = Array(4).fill().map(() => Array(4).fill(0));
+        let lastMergedCells = [];
+        
+        // إنشاء واجهة الإدخال
+        function createInputGrid() {
+            inputGrid.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.className = 'cell';
+                    input.value = board[i][j];
+                    input.min = "0";
+                    input.dataset.row = i;
+                    input.dataset.col = j;
+                    input.addEventListener('change', updateBoard);
+                    
+                    // تظليل الخلايا المدمجة مؤخرًا
+                    if (lastMergedCells.some(cell => cell[0] === i && cell[1] === j)) {
+                        input.classList.add('merged-cell');
+                    }
+                    
+                    inputGrid.appendChild(input);
+                }
+            }
+        }
+        
+        // تحديث مصفوفة اللوحة
+        function updateBoard(e) {
+            const row = parseInt(e.target.dataset.row);
+            const col = parseInt(e.target.dataset.col);
+            board[row][col] = parseInt(e.target.value) || 0;
+            lastMergedCells = [];
+        }
+        
+        // توليد لوحة عشوائية
+        document.getElementById('randomBtn').addEventListener('click', function() {
+            board = Array(4).fill().map(() => Array(4).fill(0));
+            // إضافة 1 أو 2 في موقعين عشوائيين
+            const positions = [];
+            while (positions.length < 2) {
+                const r = Math.floor(Math.random() * 4);
+                const c = Math.floor(Math.random() * 4);
+                if (!positions.some(pos => pos[0] === r && pos[1] === c)) {
+                    positions.push([r, c]);
+                    board[r][c] = 1;
+                }
+            }
+            lastMergedCells = [];
+            createInputGrid();
+            solutionText.textContent = "تم توليد لوحة جديدة، اضغط على 'إيجاد الحل الأمثل'";
+            moveDetails.innerHTML = '';
+        });
+        
+        // محلل الذكاء الاصطناعي المتقدم
+        document.getElementById('solveBtn').addEventListener('click', function() {
+            const { bestMove, newBoard, score, mergedCells, explanation } = findBestMove(board);
+            const moves = {
+                'up': '↑ أعلى',
+                'down': '↓ أسفل',
+                'left': '← يسار',
+                'right': '→ يمين'
+            };
+            
+            if (bestMove) {
+                solutionText.innerHTML = `<span class="highlight">الحركة الموصى بها: ${moves[bestMove]}</span>`;
+                
+                moveDetails.innerHTML = `
+                    <div class="move-explanation">
+                        <p><strong>السبب:</strong> ${explanation}</p>
+                        <p><strong>النقاط المحتملة:</strong> ${score}</p>
+                        <p><strong>الخلايا المدمجة:</strong> ${mergedCells.length > 0 ? mergedCells.map(c => `(${c[0]+1},${c[1]+1})`).join(', ') : 'لا يوجد'}</p>
+                    </div>
+                    <p>الحالة بعد التحرك:</p>
+                    <div class="grid" id="previewGrid"></div>
+                `;
+                
+                // عرض حالة اللوحة بعد التنفيذ
+                const previewGrid = document.getElementById('previewGrid');
+                previewGrid.innerHTML = '';
+                for (let i = 0; i < 4; i++) {
+                    for (let j = 0; j < 4; j++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.textContent = newBoard[i][j] || '';
+                        previewGrid.appendChild(cell);
+                    }
+                }
+                
+                // حفظ الخلايا المدمجة لتظليلها
+                lastMergedCells = mergedCells;
+            } else {
+                solutionText.textContent = "لا توجد حركات متاحة للدمج!";
+                moveDetails.innerHTML = '';
+            }
+        });
+        
+        // خوارزمية متقدمة لإيجاد أفضل حركة
+        function findBestMove(grid) {
+            const directions = ['up', 'down', 'left', 'right'];
+            let bestScore = -Infinity;
+            let bestMove = null;
+            let bestBoard = null;
+            let bestMergedCells = [];
+            let bestExplanation = '';
+            
+            for (const dir of directions) {
+                const { newGrid, score, mergedCells } = simulateMove(grid, dir);
+                
+                if (mergedCells.length > 0) {
+                    // معيار التفضيل: عدد الخلايا المدمجة + النقاط
+                    const moveQuality = mergedCells.length * 2 + score;
+                    
+                    if (moveQuality > bestScore) {
+                        bestScore = moveQuality;
+                        bestMove = dir;
+                        bestBoard = newGrid;
+                        bestMergedCells = mergedCells;
+                        bestExplanation = getMoveExplanation(dir, mergedCells, newGrid);
+                    }
+                }
+            }
+            
+            return { 
+                bestMove, 
+                newBoard: bestBoard, 
+                score: bestScore, 
+                mergedCells: bestMergedCells,
+                explanation: bestExplanation
+            };
+        }
+        
+        // شرح سبب التوصية
+        function getMoveExplanation(direction, mergedCells, newBoard) {
+            const dirNames = {
+                'up': 'أعلى',
+                'down': 'أسفل',
+                'left': 'يسار',
+                'right': 'يمين'
+            };
+            
+            const mergedValues = mergedCells.map(cell => {
+                const val = newBoard[cell[0]][cell[1]];
+                return val ? val - 1 : 0;
+            }).filter(v => v > 0);
+            
+            if (mergedValues.length > 0) {
+                const uniqueValues = [...new Set(mergedValues)];
+                const mergers = uniqueValues.map(v => {
+                    const count = mergedValues.filter(x => x === v).length;
+                    return `${v}+${v} => ${v+1} (${count} مرة)`;
+                }).join('، ');
+                
+                return `سيتم دمج ${mergers} عند التحرك ${dirNames[direction]}`;
+            }
+            
+            return `أفضل حركة متاحة هي ${dirNames[direction]}`;
+        }
+        
+        // محاكاة الحركات في جميع الاتجاهات
+        function simulateMove(grid, direction) {
+            const newGrid = JSON.parse(JSON.stringify(grid));
+            let score = 0;
+            const mergedCells = [];
+            
+            if (direction === 'left' || direction === 'right') {
+                const reverse = direction === 'right';
+                
+                for (let i = 0; i < 4; i++) {
+                    let row = newGrid[i].filter(val => val !== 0);
+                    if (reverse) row.reverse();
+                    
+                    for (let j = 0; j < row.length - 1; j++) {
+                        if (row[j] === row[j+1]) {
+                            row[j] += 1; // قاعدة n+n=n+1
+                            score += Math.pow(2, row[j]);
+                            mergedCells.push([i, reverse ? 3-j : j]);
+                            row.splice(j+1, 1);
+                        }
+                    }
+                    
+                    while (row.length < 4) row.push(0);
+                    if (reverse) row.reverse();
+                    newGrid[i] = [...row];
+                }
+            } 
+            else if (direction === 'up' || direction === 'down') {
+                const reverse = direction === 'down';
+                
+                for (let j = 0; j < 4; j++) {
+                    let column = [];
+                    for (let i = 0; i < 4; i++) {
+                        if (newGrid[i][j] !== 0) column.push(newGrid[i][j]);
+                    }
+                    if (reverse) column.reverse();
+                    
+                    for (let i = 0; i < column.length - 1; i++) {
+                        if (column[i] === column[i+1]) {
+                            column[i] += 1;
+                            score += Math.pow(2, column[i]);
+                            mergedCells.push([reverse ? 3-i : i, j]);
+                            column.splice(i+1, 1);
+                        }
+                    }
+                    
+                    while (column.length < 4) column.push(0);
+                    if (reverse) column.reverse();
+                    
+                    for (let i = 0; i < 4; i++) {
+                        newGrid[i][j] = column[i];
+                    }
+                }
+            }
+            
+            // إضافة رقم عشوائي بعد الحركة (محاكاة للعبة الحقيقية)
+            if (mergedCells.length > 0) {
+                const emptyCells = [];
+                for (let i = 0; i < 4; i++) {
+                    for (let j = 0; j < 4; j++) {
+                        if (newGrid[i][j] === 0) emptyCells.push([i, j]);
+                    }
+                }
+                if (emptyCells.length > 0) {
+                    const [r, c] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                    newGrid[r][c] = 1;
+                }
+            }
+            
+            return { newGrid, score, mergedCells };
+        }
+        
+        // معالجة الحركات الفعلية
+        function handleMove(direction) {
+            const { newGrid, score, mergedCells } = simulateMove(board, direction);
+            
+            if (mergedCells.length > 0) {
+                board = newGrid;
+                lastMergedCells = mergedCells;
+                createInputGrid();
+                
+                const moveNames = {
+                    'up': 'أعلى',
+                    'down': 'أسفل',
+                    'left': 'يسار',
+                    'right': 'يمين'
+                };
+                
+                solutionText.innerHTML = `تم التحرك ${moveNames[direction]} - النقاط المكتسبة: <strong>${score}</strong>`;
+                
+                moveDetails.innerHTML = `
+                    <div class="move-explanation">
+                        <p><strong>الخلايا المدمجة:</strong> ${mergedCells.map(c => `(${c[0]+1},${c[1]+1})`).join(', ')}</p>
+                    </div>
+                `;
+            } else {
+                solutionText.textContent = "هذه الحركة غير ممكنة! جرب اتجاهًا آخر";
+                moveDetails.innerHTML = '';
+            }
+        }
+        
+        // إضافة معالجات الأزرار للحركة
+        document.getElementById('moveUp').addEventListener('click', () => handleMove('up'));
+        document.getElementById('moveDown').addEventListener('click', () => handleMove('down'));
+        document.getElementById('moveLeft').addEventListener('click', () => handleMove('left'));
+        document.getElementById('moveRight').addEventListener('click', () => handleMove('right'));
+        
+        // بدء التطبيق
+        createInputGrid();
+    </script>
+</body>
+</html>
