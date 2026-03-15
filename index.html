@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>مساعد دمج الحيوانات الذكي</title>
+<title>مساعد حدث دمج الحيوانات</title>
 
 <style>
 
@@ -14,74 +14,51 @@ color:white;
 font-family:Arial;
 text-align:center;
 margin:0;
-padding:10px;
 }
 
-h2{
-font-size:clamp(18px,4vw,28px);
+.container{
+max-width:420px;
+margin:auto;
+padding:10px;
 }
 
 .grid{
 display:grid;
 grid-template-columns:repeat(4,1fr);
-gap:12px;
-
-width:90vw;
-max-width:420px;
-
-margin:auto;
-margin-top:20px;
+gap:10px;
 }
 
 .cell{
-aspect-ratio:1;
-
 background:#1e293b;
-
+height:80px;
+border-radius:12px;
 display:flex;
 align-items:center;
 justify-content:center;
-
-font-size:clamp(18px,5vw,28px);
-
-border-radius:14px;
+font-size:24px;
+user-select:none;
 cursor:pointer;
 }
 
 button{
-
 margin:6px;
-padding:10px 18px;
-
+padding:10px 16px;
 border:none;
-border-radius:12px;
-
-font-size:clamp(12px,3vw,16px);
-
+border-radius:10px;
+font-size:16px;
 cursor:pointer;
-
-background:#22c55e;
-color:white;
 }
 
-.mode{
-background:#3b82f6;
+.green{background:#22c55e}
+
+.arrows button{
+width:60px;
+font-size:22px;
 }
 
-.move{
-background:#f59e0b;
-}
-
-.result{
-
-margin-top:20px;
-font-size:clamp(14px,3vw,18px);
-line-height:1.8;
-
-max-width:500px;
-margin-left:auto;
-margin-right:auto;
-
+#result{
+margin-top:10px;
+font-size:18px;
 }
 
 </style>
@@ -89,126 +66,128 @@ margin-right:auto;
 
 <body>
 
-<h2>🤖 مساعد لعبة دمج الحيوانات</h2>
+<div class="container">
+
+<h2>🧠 مساعد دمج الحيوانات</h2>
 
 <div class="grid" id="grid"></div>
 
-<br>
+<div>
+<button class="green" onclick="analyzeAI()">تحليل AI</button>
+<button class="green" onclick="clearBoard()">مسح اللوحة</button>
+</div>
 
-<button onclick="analyze()">🧠 تحليل</button>
-<button onclick="clearBoard()">🧹 مسح اللوحة</button>
+<div class="arrows">
 
-<br>
+<div>
+<button onclick="moveUp();draw()">⬆️</button>
+</div>
 
-<button class="mode" onclick="setMode(0)">أرقام</button>
-<button class="mode" onclick="setMode(1)">حيوانات</button>
-<button class="mode" onclick="setMode(2)">حيوانات + رقم</button>
+<div>
+<button onclick="moveLeft();draw()">⬅️</button>
+<button onclick="moveDown();draw()">⬇️</button>
+<button onclick="moveRight();draw()">➡️</button>
+</div>
 
-<br><br>
+</div>
 
-<button class="move" onclick="move('up')">⬆️</button>
-<br>
-<button class="move" onclick="move('left')">⬅️</button>
-<button class="move" onclick="move('right')">➡️</button>
-<br>
-<button class="move" onclick="move('down')">⬇️</button>
+<div id="result"></div>
 
-<div class="result" id="result"></div>
+</div>
 
 <script>
 
+let board=new Array(16).fill(0)
+
 let animals=[
 "",
-"🐪",
-"🦅",
-"🐆",
-"🦁",
-"🐺",
-"🐉",
-"🐎",
-"🦬",
-"🐘",
-"🐲",
-"🦍"
+"🐪","🦅","🐆","🦁","🐺",
+"🐲","🐉","🦄","🐯","🐻","🐼"
 ]
 
-let mode=0
-let grid=document.getElementById("grid")
-let cells=[]
+/* رسم اللوحة */
+
+function draw(){
+
+let g=document.getElementById("grid")
+g.innerHTML=""
 
 for(let i=0;i<16;i++){
 
-let div=document.createElement("div")
-div.className="cell"
-div.dataset.value=0
+let d=document.createElement("div")
+d.className="cell"
 
-div.onclick=()=>{
+let v=board[i]
 
-let v=Number(div.dataset.value)
+if(v>0){
 
-v++
-if(v>11) v=1
-
-div.dataset.value=v
-drawCell(div)
+let icon=animals[v] || "⭐"
+d.innerText=icon+" "+v
 
 }
 
-let timer
+let timer=null
 
-div.onmousedown=()=>{
+/* زيادة المستوى */
+
+d.onclick=()=>{
+
+board[i]++
+
+if(board[i]>11) board[i]=11
+
+draw()
+
+}
+
+/* مسح مطول */
+
+d.addEventListener("mousedown",()=>{
 
 timer=setTimeout(()=>{
 
-div.dataset.value=0
-div.innerText=""
+board[i]=0
+draw()
 
-},600)
+},800)
 
-}
+})
 
-div.onmouseup=()=>clearTimeout(timer)
-div.onmouseleave=()=>clearTimeout(timer)
+d.addEventListener("mouseup",()=>clearTimeout(timer))
 
-grid.appendChild(div)
-cells.push(div)
+d.addEventListener("touchstart",()=>{
 
-}
+timer=setTimeout(()=>{
 
-function drawCell(cell){
+board[i]=0
+draw()
 
-let v=Number(cell.dataset.value)
+},800)
 
-if(v==0){
-cell.innerText=""
-return
-}
+})
 
-if(mode==0) cell.innerText=v
-if(mode==1) cell.innerText=animals[v]
-if(mode==2) cell.innerText=animals[v]+" "+v
+d.addEventListener("touchend",()=>clearTimeout(timer))
+
+g.appendChild(d)
 
 }
 
-function setMode(m){
-
-mode=m
-cells.forEach(drawCell)
-
 }
+
+/* مسح اللوحة */
 
 function clearBoard(){
 
-cells.forEach(c=>{
-c.dataset.value=0
-c.innerText=""
-})
+board=new Array(16).fill(0)
+draw()
 
 }
 
+/* دمج */
+
 function slide(row){
 
-row=row.filter(v=>v)
+row=row.filter(x=>x)
 
 for(let i=0;i<row.length-1;i++){
 
@@ -227,165 +206,188 @@ return row
 
 }
 
-function move(dir){
+/* الحركات */
 
-let board=cells.map(c=>Number(c.dataset.value))
-let newBoard=[...board]
-
-if(dir=="left"){
+function moveLeft(){
 
 for(let r=0;r<4;r++){
 
 let row=board.slice(r*4,r*4+4)
+
 row=slide(row)
 
 for(let c=0;c<4;c++)
-newBoard[r*4+c]=row[c]
+board[r*4+c]=row[c]
 
 }
 
 }
 
-if(dir=="right"){
+function moveRight(){
 
 for(let r=0;r<4;r++){
 
 let row=board.slice(r*4,r*4+4).reverse()
+
 row=slide(row)
-row=row.reverse()
+
+row.reverse()
 
 for(let c=0;c<4;c++)
-newBoard[r*4+c]=row[c]
+board[r*4+c]=row[c]
 
 }
 
 }
 
-if(dir=="up"){
+function moveUp(){
 
 for(let c=0;c<4;c++){
 
 let col=[board[c],board[c+4],board[c+8],board[c+12]]
+
 col=slide(col)
 
 for(let r=0;r<4;r++)
-newBoard[r*4+c]=col[r]
+board[r*4+c]=col[r]
 
 }
 
 }
 
-if(dir=="down"){
+function moveDown(){
 
 for(let c=0;c<4;c++){
 
 let col=[board[c],board[c+4],board[c+8],board[c+12]].reverse()
+
 col=slide(col)
-col=col.reverse()
+
+col.reverse()
 
 for(let r=0;r<4;r++)
-newBoard[r*4+c]=col[r]
+board[r*4+c]=col[r]
 
 }
 
 }
 
-for(let i=0;i<16;i++){
+/* محاكاة */
 
-cells[i].dataset.value=newBoard[i]
-drawCell(cells[i])
+function simulate(b,dir){
+
+let save=[...board]
+board=[...b]
+
+if(dir=="left") moveLeft()
+if(dir=="right") moveRight()
+if(dir=="up") moveUp()
+if(dir=="down") moveDown()
+
+let result=[...board]
+
+board=save
+
+return result
 
 }
 
-}
+/* تقييم اللوحة */
 
-function analyze(){
+function evaluate(b){
 
-let board=cells.map(c=>Number(c.dataset.value))
-
-let empty=board.filter(v=>v==0).length
-let max=Math.max(...board)
+let empty=b.filter(x=>x==0).length
+let max=Math.max(...b)
 
 let merges=0
 
 for(let i=0;i<16;i++){
 
-if(i%4!=3 && board[i]!=0 && board[i]==board[i+1]) merges++
-if(i<12 && board[i]!=0 && board[i]==board[i+4]) merges++
+if(i%4!=3 && b[i]==b[i+1]) merges++
+if(i<12 && b[i]==b[i+4]) merges++
 
 }
 
-let danger="🟢 آمن"
-if(empty<4) danger="🟡 متوسط"
-if(empty<2) danger="🔴 خطر"
+let corners=[b[0],b[3],b[12],b[15]]
+let corner=corners.includes(max)?150:0
 
-let bestMove="⬅️"
-if(merges==0 && empty<2) bestMove="⬆️"
-
-let tools=""
-
-if(empty==0){
-
-tools+="⚠ اللوحة ممتلئة<br>"
-tools+="🧹 استخدم مسح مربع مستوى منخفض<br>"
-tools+="🔄 استخدم خلط اللوحة<br>"
+return empty*120 + merges*100 + corner + max*10
 
 }
 
-else if(empty<=2){
+/* تفكير */
 
-tools+="⚠ اللوحة شبه ممتلئة<br>"
-tools+="💎 استخدم البلورة لدمج حيوانين قويين<br>"
+function think(b,depth){
+
+if(depth==0) return evaluate(b)
+
+let dirs=["left","right","up","down"]
+let best=-999999
+
+for(let d of dirs){
+
+let nb=simulate(b,d)
+
+if(nb.toString()==b.toString()) continue
+
+let score=think(nb,depth-1)
+
+if(score>best) best=score
 
 }
+
+return best
+
+}
+
+/* تحليل */
+
+function analyzeAI(){
+
+let dirs=["left","right","up","down"]
+
+let bestMove=null
+let bestScore=-999999
+
+for(let d of dirs){
+
+let nb=simulate(board,d)
+
+if(nb.toString()==board.toString()) continue
+
+let s=think(nb,6)
+
+if(s>bestScore){
+
+bestScore=s
+bestMove=d
+
+}
+
+}
+
+let arrow={
+left:"⬅️",
+right:"➡️",
+up:"⬆️",
+down:"⬇️"
+}
+
+let empty=board.filter(x=>x==0).length
+
+let moveText=bestMove?arrow[bestMove]:"لا يوجد"
 
 document.getElementById("result").innerHTML=
 
-`
-مربعات فارغة: ${empty}<br>
-دمج ممكن: ${merges}<br>
-أعلى مستوى: ${max}<br>
-الحالة: ${danger}<br><br>
-
-أفضل حركة: ${bestMove}<br><br>
-
-${tools}
-`
+"أفضل اتجاه: "+moveText+"<br>"+
+"المربعات الفارغة: "+empty+"<br>"+
+"تقييم الذكاء: "+bestScore
 
 }
 
-/* السحب بالإصبع */
-
-let startX=0
-let startY=0
-
-grid.addEventListener("touchstart",(e)=>{
-
-startX=e.touches[0].clientX
-startY=e.touches[0].clientY
-
-})
-
-grid.addEventListener("touchend",(e)=>{
-
-let dx=e.changedTouches[0].clientX-startX
-let dy=e.changedTouches[0].clientY-startY
-
-if(Math.abs(dx)>Math.abs(dy)){
-
-if(dx>30) move("right")
-if(dx<-30) move("left")
-
-}else{
-
-if(dy>30) move("down")
-if(dy<-30) move("up")
-
-}
-
-})
+draw()
 
 </script>
 
 </body>
-  </html>
+</html>
